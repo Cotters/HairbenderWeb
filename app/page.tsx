@@ -48,6 +48,48 @@ export default function Home() {
   const [error, setError] = useState("");
   const [slider, setSlider] = useState(55);
   const [emailSaved, setEmailSaved] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    setDarkMode(mql.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      if (document.documentElement.dataset.theme) return; // manual override active
+      setDarkMode(e.matches);
+    };
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (darkMode === null) return;
+    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+  }, [darkMode]);
+
+  const revealFrameRef = useRef<HTMLDivElement | null>(null);
+  const revealDragging = useRef(false);
+
+  const updateRevealFromPointer = (clientX: number) => {
+    if (!revealFrameRef.current) return;
+    const rect = revealFrameRef.current.getBoundingClientRect();
+    const pct = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+    setSlider(pct);
+  };
+
+  useEffect(() => {
+    const handleMove = (e: PointerEvent) => {
+      if (!revealDragging.current) return;
+      updateRevealFromPointer(e.clientX);
+    };
+    const handleUp = () => { revealDragging.current = false; };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, []);
+
   const [cropUrl, setCropUrl] = useState<string>(placeholderImage);
   const [cropZoom, setCropZoom] = useState(1);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
@@ -315,9 +357,19 @@ export default function Home() {
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
           </div>
-          <a className="btn btn-primary" href="#tryon">
-            Start Trial
-          </a>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <button
+              className="btn btn-ghost theme-toggle"
+              onClick={() => setDarkMode((prev) => !prev)}
+              aria-label="Toggle dark mode"
+              type="button"
+            >
+              ◐
+            </button>
+            <a className="btn btn-primary" href="#tryon">
+              Start Trial
+            </a>
+          </div>
         </nav>
       </header>
 
@@ -559,23 +611,29 @@ export default function Home() {
             <div className={`panel panel-reveal ${step < 5 ? "is-disabled" : ""}`}>
               <h3>Reveal</h3>
               <p className="panel-subtitle">Slide to compare the before and after.</p>
-              <div className="reveal-frame">
+              <div
+                className="reveal-frame"
+                ref={revealFrameRef}
+                onPointerDown={(e) => {
+                  revealDragging.current = true;
+                  updateRevealFromPointer(e.clientX);
+                }}
+              >
                 <img src={previewUrl} alt="Before" />
                 <img
                   src={resultUrl}
                   alt="After"
                   style={{ clipPath: `inset(0 ${100 - slider}% 0 0)` }}
                 />
-                <div className="reveal-divider" style={{ left: `${slider}%` }} />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={slider}
-                  className="reveal-slider"
-                  onChange={(event) => setSlider(Number(event.target.value))}
-                  aria-label="Before and after slider"
-                />
+                <div className="reveal-divider" style={{ left: `${slider}%` }}>
+                  <div
+                    className="reveal-handle"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      revealDragging.current = true;
+                    }}
+                  />
+                </div>
               </div>
               <div className="reveal-actions">
                 <button
