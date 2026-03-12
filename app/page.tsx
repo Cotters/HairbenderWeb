@@ -561,9 +561,12 @@ export default function Home() {
               <p className="panel-subtitle">Slide to compare the before and after.</p>
               <div className="reveal-frame">
                 <img src={previewUrl} alt="Before" />
-                <div className="after-layer" style={{ width: `${slider}%` }}>
-                  <img src={resultUrl} alt="After" />
-                </div>
+                <img
+                  src={resultUrl}
+                  alt="After"
+                  style={{ clipPath: `inset(0 ${100 - slider}% 0 0)` }}
+                />
+                <div className="reveal-divider" style={{ left: `${slider}%` }} />
                 <input
                   type="range"
                   min="0"

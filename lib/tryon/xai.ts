@@ -1,7 +1,7 @@
 import { generateImage } from "ai";
 import { xai } from "@ai-sdk/xai";
 
-const DEFAULT_MODEL = "grok-imagine-image";
+const DEFAULT_MODEL = "aurora";
 
 type GenerateArgs = {
   imageBase64: string;
@@ -24,7 +24,7 @@ export async function generateTryOn({
     prompt,
     providerOptions: {
       xai: {
-        image: `data:${mimeType};base64,${imageBase64}`,
+        image: imageBase64,
       },
     },
   });
