@@ -19,11 +19,14 @@ export async function generateTryOn({
   }
 
   const modelName = process.env.XAI_IMAGE_MODEL || DEFAULT_MODEL;
-  const imageBuffer = Buffer.from(imageBase64, "base64");
   const { image } = await generateImage({
     model: xai.image(modelName),
     prompt,
-    images: [imageBuffer],
+    providerOptions: {
+      xai: {
+        image: `data:${mimeType};base64,${imageBase64}`,
+      },
+    },
   });
 
   if (!image?.base64) {
@@ -31,6 +34,6 @@ export async function generateTryOn({
   }
 
   return {
-    imageUrl: `data:${image.mimeType};base64,${image.base64}`,
+    imageUrl: `data:${mimeType};base64,${image.base64}`,
   };
 }
