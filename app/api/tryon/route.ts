@@ -39,10 +39,14 @@ function buildPrompt(styleId: string, _collection: string) {
 
   return (
     `Edit ONLY the hair of the person in this photo. Apply exactly: ${description}. ` +
-    `Requirements: preserve the person's exact face, skin tone, eye color, facial structure, expression, and clothing completely unchanged. ` +
-    `Keep the background, lighting, shadows, and camera angle identical to the original photo. ` +
+    `CRITICAL COMPOSITION RULES — these override everything else: ` +
+    `The output image must be pixel-for-pixel identical in framing and composition to the input. ` +
+    `The subject must remain in the exact same position within the frame — same horizontal placement, same vertical placement, same distance from camera, same crop. ` +
+    `Do not shift, pan, zoom, reframe, or recompose the scene in any way. ` +
+    `The background must be identical — same colours, same objects, same spatial layout, unchanged. ` +
+    `Preserve the person's exact face, skin tone, eye colour, facial structure, expression, and clothing completely unchanged. ` +
+    `Keep lighting, shadows, and camera angle identical to the input photo. ` +
     `The new hair must look photorealistic — render individual strands, realistic highlight and shadow, natural depth and weight. ` +
-    `The result must look like a professional salon photograph of the same real person. ` +
     `Do not change anything except the hairstyle.`
   );
 }
