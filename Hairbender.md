@@ -57,7 +57,7 @@ We ditched the "floaty" AR filters for **Deep Generative AI**.
 
 ### 1. Crown Atelier (B2C)
 -   **Free:** 3 "Castings" per day. Standard "Issue" styles.
--   **Pro ($5.99/mo):**
+-   **Pro ($9.99/mo):**
     -   Unlimited Castings.
     -   "The Archives" (Access to vintage/fantasy styles).
     -   "High-Res Export" (4K print-ready images).

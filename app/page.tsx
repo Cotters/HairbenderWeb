@@ -713,7 +713,7 @@ export default function Home() {
             </div>
             <div className="price-card price-card-featured">
               <h3>Pro Atelier</h3>
-              <p className="price">$5.99 / mo</p>
+              <p className="price">$9.99 / mo</p>
               <ul>
                 <li>Unlimited castings</li>
                 <li>The Archives</li>
