@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  COLLECTION_LABELS,
+  COLLECTION_ORDER,
+  styleCollections,
+} from "@/lib/styles/collections";
+import type { CollectionKey } from "@/lib/styles/types";
 
 const placeholderImage =
   "data:image/svg+xml;utf8," +
@@ -12,30 +18,9 @@ const placeholderImage =
       "</svg>"
   );
 
-const styleCollections = {
-  paris: [
-    { id: "paris-01", name: "Chic Bob", notes: "Jaw-length, soft edge" },
-    { id: "paris-02", name: "Glass Cut", notes: "Blunt, high shine" },
-    { id: "paris-03", name: "Italian Lob", notes: "Mid-length, airy" },
-    { id: "paris-04", name: "French Pixie", notes: "Micro fringe" },
-  ],
-  grunge: [
-    { id: "grunge-01", name: "Shag Matrix", notes: "Layered, undone" },
-    { id: "grunge-02", name: "Razor Wave", notes: "Textured depth" },
-    { id: "grunge-03", name: "Soft Mullet", notes: "Short crown" },
-    { id: "grunge-04", name: "Grit Fringe", notes: "Broken bangs" },
-  ],
-  executive: [
-    { id: "exec-01", name: "The Boardroom", notes: "Clean taper" },
-    { id: "exec-02", name: "Contour Fade", notes: "Sharp edges" },
-    { id: "exec-03", name: "Classic Part", notes: "Defined line" },
-    { id: "exec-04", name: "Executive Crop", notes: "Tidy texture" },
-  ],
-};
 
 export default function Home() {
-  const [collection, setCollection] =
-    useState<keyof typeof styleCollections>("paris");
+  const [collection, setCollection] = useState<CollectionKey>("paris");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [rawFile, setRawFile] = useState<File | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -631,18 +616,14 @@ export default function Home() {
                 Choose a collection and commission your edit.
               </p>
               <div className="collection-tabs">
-                {(["paris", "grunge", "executive"] as const).map((key) => (
+                {COLLECTION_ORDER.map((key) => (
                   <button
                     key={key}
                     className={`tab ${collection === key ? "is-active" : ""}`}
-                    onClick={() => setCollection(key)}
+                    onClick={() => { setCollection(key); setSelectedStyle(null); }}
                     type="button"
                   >
-                    {key === "paris"
-                      ? "The Paris Collection"
-                      : key === "grunge"
-                      ? "The Grunge Issue"
-                      : "The Executive"}
+                    {COLLECTION_LABELS[key]}
                   </button>
                 ))}
               </div>

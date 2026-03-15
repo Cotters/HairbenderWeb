@@ -1,7 +1,7 @@
-# Crown 👑 - The High-Fashion AI Stylist
+# Hairbender - The High-Fashion AI Stylist
 
 ## 🚀 The Vision
-Crown is the **Vogue of Hair Apps**. It is a high-fidelity, editorial-grade hair transformation platform. We prioritize **photorealism** over real-time gimmicks. Users upload a photo to receive a salon-quality visualization of their next look, presented with the aesthetic of a high-end fashion magazine.
+Hairbender is the **Vogue of Hair Apps**. It is a high-fidelity, editorial-grade hair transformation platform. We prioritize **photorealism** over real-time gimmicks. Users upload a photo to receive a salon-quality visualization of their next look, presented with the aesthetic of a high-end fashion magazine.
 
 ---
 
@@ -55,7 +55,7 @@ We ditched the "floaty" AR filters for **Deep Generative AI**.
 
 ## 💰 Monetization Strategy
 
-### 1. Crown Atelier (B2C)
+### 1. Hairbender Atelier (B2C)
 -   **Free:** 3 "Castings" per day. Standard "Issue" styles.
 -   **Pro ($9.99/mo):**
     -   Unlimited Castings.
@@ -63,7 +63,7 @@ We ditched the "floaty" AR filters for **Deep Generative AI**.
     -   "High-Res Export" (4K print-ready images).
     -   "Barber Protocol" PDF.
 
-### 2. Crown Verified (B2B)
+### 2. Hairbender Verified (B2B)
 -   **Salon Certification:** Salons pay to be listed as "Verified Experts" for specific cuts.
 -   **Trend Reports:** Sell aggregated data on trending styles to L'Oreal/Dyson.
 
@@ -77,8 +77,3 @@ We ditched the "floaty" AR filters for **Deep Generative AI**.
     -   **Stable Diffusion XL / ControlNet:** Fine-tuned on professional hair photography.
     -   **Inpainting:** Masking the hair region automatically and regenerating with high coherence.
 -   **Infrastructure:** GPU inference on the cloud (AWS/GCP/Modal).
-
-### Roadmap
-1.  **MVP:** "The September Issue" (Launch with 20 core styles). iOS/Android.
-2.  **V1.1:** "The Roast" (Viral feature).
-3.  **V2.0:** "Barber Protocol" & Salon Integrations.
