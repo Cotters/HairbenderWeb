@@ -355,76 +355,126 @@ main {
   margin-bottom: 2.5rem;
 }
 
-/* ── Stepper ──────────────────────────────────────────────────────────── */
-.stepper {
+/* ── Try-on layout ────────────────────────────────────────────────────── */
+.tryon-layout {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  border: var(--border);
-  margin-bottom: 2rem;
-}
-
-.step {
-  padding: 0.75rem 1rem;
-  border-right: var(--border);
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-}
-
-.step:last-child {
-  border-right: none;
-}
-
-.step.is-active {
-  background: var(--ink);
-  color: var(--paper);
-}
-
-/* ── Try-on grid ──────────────────────────────────────────────────────── */
-.tryon-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 5fr 7fr;
   gap: 2rem;
+  align-items: start;
 }
 
-.panel {
+.photo-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-view {
+  aspect-ratio: 1 / 1;
   border: var(--border);
-  padding: 1.5rem;
-  background: var(--paper);
-  min-height: 340px;
+  background: var(--surface-mid);
   position: relative;
+  overflow: hidden;
   transition: background-color 0.25s ease;
 }
 
-.panel.is-disabled {
-  opacity: 0.4;
-  pointer-events: none;
+.photo-view--upload {
+  cursor: pointer;
 }
 
-.panel-subtitle {
-  font-size: 0.85rem;
-  max-width: 24rem;
+.photo-view--crop {
+  cursor: grab;
 }
 
-.upload-box {
-  border: var(--border);
-  padding: 2rem;
-  margin: 1.5rem 0;
+.photo-view--crop:active {
+  cursor: grabbing;
+}
+
+.casting-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   text-align: center;
-  position: relative;
-  background: var(--surface);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 2rem;
+  transition: background-color 0.15s ease;
 }
 
-.upload-box:hover {
-  box-shadow: inset 0 0 0 1px var(--ink);
+.casting-overlay:hover {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
 
-.upload-box input {
+.casting-overlay input {
   position: absolute;
   inset: 0;
   opacity: 0;
   cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.casting-prompt {
+  pointer-events: none;
+  text-align: center;
+}
+
+.casting-prompt p {
+  margin: 0 0 0.4rem;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.casting-prompt span {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  opacity: 0.5;
+}
+
+.photo-controls {
+  border: var(--border);
+  border-top: none;
+  padding: 1.25rem 1.5rem;
+  background: var(--paper);
+  transition: background-color 0.25s ease;
+}
+
+.photo-controls-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+  margin: 0 0 0.35rem;
+}
+
+.photo-controls-desc {
+  font-size: 0.82rem;
+  margin: 0 0 0.9rem;
+}
+
+.photo-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.photo-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+}
+
+.lookbook-col {
+  border: var(--border);
+  padding: 1.5rem;
+  background: var(--paper);
+  transition: background-color 0.25s ease;
 }
 
 .validation-hints {
@@ -432,13 +482,6 @@ main {
   flex-wrap: wrap;
   gap: 0.75rem;
   font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
-.upload-status,
-.processing-status {
-  margin-top: 1rem;
-  font-size: 0.75rem;
   text-transform: uppercase;
 }
 
@@ -459,7 +502,7 @@ main {
   color: var(--ink);
   cursor: pointer;
   font-family: var(--mono);
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .tab:hover {
@@ -521,47 +564,6 @@ main {
   gap: 0.5rem;
   font-size: 0.75rem;
   text-transform: uppercase;
-}
-
-.processing-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-/* ── Cropper ──────────────────────────────────────────────────────────── */
-.cropper {
-  display: grid;
-  gap: 1rem;
-}
-
-.cropper-viewport {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border: var(--border);
-  background: var(--surface-mid);
-  position: relative;
-  overflow: hidden;
-  cursor: grab;
-  transition: background-color 0.25s ease;
-}
-
-.cropper-viewport img {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  user-select: none;
-  pointer-events: none;
-}
-
-.cropper-controls {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.cropper-actions {
-  display: flex;
-  gap: 1rem;
 }
 
 /* ── Inputs ───────────────────────────────────────────────────────────── */
@@ -800,7 +802,7 @@ ul {
 /* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 980px) {
   .hero-grid,
-  .tryon-grid,
+  .tryon-layout,
   .value-props,
   .pricing-grid,
   .feature-grid,

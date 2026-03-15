@@ -111,16 +111,9 @@ export default function Home() {
     if (!processing) return;
     const timer = setInterval(() => {
       setProgress((value) => (value < 80 ? value + 6 : value));
-    }, 900);
+    }, 350);
     return () => clearInterval(timer);
   }, [processing]);
-
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
 
   useEffect(() => {
     if (!rawFile) return;
@@ -146,7 +139,7 @@ export default function Home() {
 
   const baseScale = useMemo(() => {
     if (!imageDims) return 1;
-    return Math.max(cropViewport / imageDims.width, cropViewport / imageDims.height);
+    return Math.min(cropViewport / imageDims.width, cropViewport / imageDims.height);
   }, [cropViewport, imageDims]);
 
   const effectiveScale = baseScale * cropZoom;
@@ -167,8 +160,6 @@ export default function Home() {
     setCropOffset((prev) => clampOffset(prev));
   }, [effectiveScale, cropViewport, imageDims]);
 
-  const startEnabled = Boolean(file && selectedStyle && !processing && step >= 4);
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0];
     if (!nextFile) return;
@@ -184,7 +175,6 @@ export default function Home() {
     }
     setRawFile(nextFile);
     setFile(null);
-    setSelectedStyle(null);
     setCropZoom(1);
     setCropOffset({ x: 0, y: 0 });
     setImageDims(null);
@@ -224,9 +214,13 @@ export default function Home() {
     };
   };
 
-  const handleCropConfirm = async () => {
+  const handleStyleMe = async () => {
     if (!rawFile || !imageDims) {
-      setError("Upload a selfie to crop.");
+      setError("Upload a selfie first.");
+      return;
+    }
+    if (!selectedStyle) {
+      setError("Select a style from the Lookbook to proceed.");
       return;
     }
     const img = cropImageRef.current;
@@ -244,26 +238,10 @@ export default function Home() {
     const renderX = (cropViewport - scaledWidth) / 2 + cropOffset.x;
     const renderY = (cropViewport - scaledHeight) / 2 + cropOffset.y;
     const srcSize = cropViewport / effectiveScale;
-    const srcX = Math.max(
-      0,
-      Math.min(imageDims.width - srcSize, -renderX / effectiveScale)
-    );
-    const srcY = Math.max(
-      0,
-      Math.min(imageDims.height - srcSize, -renderY / effectiveScale)
-    );
+    const srcX = Math.max(0, Math.min(imageDims.width - srcSize, -renderX / effectiveScale));
+    const srcY = Math.max(0, Math.min(imageDims.height - srcSize, -renderY / effectiveScale));
 
-    ctx.drawImage(
-      img,
-      srcX,
-      srcY,
-      srcSize,
-      srcSize,
-      0,
-      0,
-      canvasSize,
-      canvasSize
-    );
+    ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, canvasSize, canvasSize);
 
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, "image/jpeg", 0.9);
@@ -273,19 +251,10 @@ export default function Home() {
       return;
     }
 
-    const croppedFile = new File([blob], "hairbender-crop.jpg", {
-      type: "image/jpeg",
-    });
+    const croppedFile = new File([blob], "hairbender-crop.jpg", { type: "image/jpeg" });
     setFile(croppedFile);
-    setStep(3);
-    setError("");
-  };
-
-  const handleStart = async () => {
-    if (!file || !selectedStyle) {
-      setError("Upload a selfie and select a style to proceed.");
-      return;
-    }
+    setPreviewUrl(URL.createObjectURL(croppedFile));
+    setStep(4);
     setProcessing(true);
     setStatus("Submitting to the stylist...");
     setProgress(8);
@@ -293,14 +262,11 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", croppedFile);
       formData.append("styleId", selectedStyle);
       formData.append("collection", collection);
 
-      const response = await fetch("/api/tryon", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch("/api/tryon", { method: "POST", body: formData });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -315,12 +281,9 @@ export default function Home() {
       setStep(5);
     } catch (err) {
       setProcessing(false);
-      setStatus("Unable to reach the studio.");
-      setError(
-        err instanceof Error
-          ? err.message
-          : "xAI request failed. Please retry."
-      );
+      setStep(2);
+      setStatus("Ready to process.");
+      setError(err instanceof Error ? err.message : "xAI request failed. Please retry.");
     }
   };
 
@@ -352,7 +315,7 @@ export default function Home() {
             <span className="brand-name">Hairbender</span>
           </div>
           <div className="nav-links">
-            <a href="#tryon">Try-On</a>
+            <a href="#tryon">Try</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
@@ -443,49 +406,31 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="stepper">
-            <div className={`step ${step === 1 ? "is-active" : ""}`}>1. Casting</div>
-            <div className={`step ${step === 2 ? "is-active" : ""}`}>2. Crop</div>
-            <div className={`step ${step === 3 ? "is-active" : ""}`}>3. Lookbook</div>
-            <div className={`step ${step === 4 ? "is-active" : ""}`}>4. Processing</div>
-            <div className={`step ${step === 5 ? "is-active" : ""}`}>5. Reveal</div>
-          </div>
+          <div className="tryon-layout">
 
-          <div className="tryon-grid">
-            <div className="panel panel-upload">
-              <h3>Casting</h3>
-              <p className="panel-subtitle">
-                Clean lighting, neutral expression, chin slightly up.
-              </p>
-              <div className="upload-box">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  onChange={handleFileChange}
-                />
-                <div className="upload-content">
-                  <p>Drop a selfie or click to upload</p>
-                  <span>JPG or PNG, max 10MB</span>
+            {/* ── Left: photo view ── */}
+            <div className="photo-col">
+
+              {/* Image box — always 1:1, never changes size */}
+              {step === 1 && (
+                <div className="photo-view photo-view--upload">
+                  <div className="casting-overlay">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={handleFileChange}
+                    />
+                    <div className="casting-prompt">
+                      <p>Drop a selfie or click to upload</p>
+                      <span>JPG or PNG · max 10MB</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="validation-hints">
-                <span>Face centered</span>
-                <span>Even lighting</span>
-                <span>No heavy filters</span>
-              </div>
-              <div className="upload-status">
-                {rawFile ? "Casting accepted." : "Awaiting file."}
-              </div>
-            </div>
+              )}
 
-            <div className={`panel panel-crop ${step < 2 ? "is-disabled" : ""}`}>
-              <h3>Crop</h3>
-              <p className="panel-subtitle">
-                Center your head and hair within the frame. Drag to reposition.
-              </p>
-              <div className="cropper">
+              {step === 2 && (
                 <div
-                  className="cropper-viewport"
+                  className="photo-view photo-view--crop"
                   ref={cropContainerRef}
                   onMouseDown={handleCropStart}
                 >
@@ -493,50 +438,196 @@ export default function Home() {
                     ref={cropImageRef}
                     src={cropUrl}
                     alt="Crop preview"
-                    onLoad={(event) => {
-                      const target = event.currentTarget;
-                      setImageDims({
-                        width: target.naturalWidth,
-                        height: target.naturalHeight,
-                      });
+                    onLoad={(e) => {
+                      const t = e.currentTarget;
+                      setImageDims({ width: t.naturalWidth, height: t.naturalHeight });
                     }}
                     style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
                       transform: `translate(-50%, -50%) translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${effectiveScale})`,
+                      userSelect: "none",
+                      pointerEvents: "none",
                     }}
                     draggable={false}
                   />
                 </div>
-                <div className="cropper-controls">
-                  <label htmlFor="cropZoom">Zoom</label>
-                  <input
-                    id="cropZoom"
-                    type="range"
-                    min="1"
-                    max="2.5"
-                    step="0.01"
-                    value={cropZoom}
-                    onChange={(event) =>
-                      setCropZoom(Number(event.target.value))
-                    }
+              )}
+
+              {step === 4 && (
+                <div className="photo-view">
+                  <img
+                    src={previewUrl}
+                    alt="Processing"
+                    style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
                   />
-                  <div className="cropper-actions">
-                    <button className="btn btn-primary" onClick={handleCropConfirm}>
-                      Crop & Continue
-                    </button>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => setCropOffset({ x: 0, y: 0 })}
-                    >
-                      Center
-                    </button>
+                </div>
+              )}
+
+              {step === 5 && (
+                <div
+                  className="photo-view"
+                  ref={revealFrameRef}
+                  onPointerDown={(e) => {
+                    revealDragging.current = true;
+                    updateRevealFromPointer(e.clientX);
+                  }}
+                >
+                  <img
+                    src={previewUrl}
+                    alt="Before"
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                  />
+                  <img
+                    src={resultUrl}
+                    alt="After"
+                    style={{
+                      position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", display: "block",
+                      clipPath: `inset(0 ${100 - slider}% 0 0)`,
+                    }}
+                  />
+                  <div className="reveal-divider" style={{ left: `${slider}%` }}>
+                    <div
+                      className="reveal-handle"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        revealDragging.current = true;
+                      }}
+                    />
                   </div>
                 </div>
+              )}
+
+              {/* Controls below image — text/buttons only, image never moves */}
+              <div className="photo-controls">
+                {step === 1 && (
+                  <>
+                    <p className="photo-controls-label">Casting</p>
+                    <p className="photo-controls-desc">
+                      Clean lighting, neutral expression, chin slightly up.
+                    </p>
+                    <div className="validation-hints">
+                      <span>Face centered</span>
+                      <span>Even lighting</span>
+                      <span>No heavy filters</span>
+                    </div>
+                  </>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <p className="photo-controls-label">Crop</p>
+                    <p className="photo-controls-desc">
+                      Drag to reposition · zoom to fit.
+                    </p>
+                    <label
+                      htmlFor="cropZoom"
+                      style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.15em", opacity: 0.5 }}
+                    >
+                      Zoom
+                    </label>
+                    <input
+                      id="cropZoom"
+                      type="range"
+                      min="1"
+                      max="2.5"
+                      step="0.01"
+                      value={cropZoom}
+                      style={{ width: "100%", margin: "0.4rem 0 0" }}
+                      onChange={(e) => setCropZoom(Number(e.target.value))}
+                    />
+                    <div className="photo-actions">
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleStyleMe}
+                        disabled={!selectedStyle || processing}
+                      >
+                        Style Me
+                      </button>
+                      <button className="btn btn-ghost" onClick={handleReset}>
+                        Scrap
+                      </button>
+                    </div>
+                    {!selectedStyle && (
+                      <p className="photo-hint">Select a style from the Lookbook to proceed.</p>
+                    )}
+                  </>
+                )}
+
+                {step === 4 && (
+                  <>
+                    <div className="progress-card" style={{ marginBottom: "0.75rem" }}>
+                      <div className="progress-line" style={{ width: `${progress}%` }} />
+                      <div className="progress-steps">
+                        <div>Casting verified</div>
+                        <div>Texture mapped</div>
+                        <div>Light sculpted</div>
+                        <div>Editorial finish</div>
+                      </div>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.75rem", textTransform: "uppercase" }}>
+                      {status}
+                    </p>
+                  </>
+                )}
+
+                {step === 5 && (
+                  <>
+                    <p className="photo-controls-label">Reveal — drag to compare</p>
+                    <div className="photo-actions">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.href = resultUrl;
+                          link.download = "hairbender-cover-shoot.jpg";
+                          link.click();
+                        }}
+                      >
+                        Export Cover Shoot
+                      </button>
+                      <button className="btn btn-ghost" onClick={handleReset}>
+                        New Session
+                      </button>
+                    </div>
+                    <form
+                      className="email-capture"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        setEmailSaved(true);
+                      }}
+                    >
+                      <label htmlFor="emailInput">Save your edit to the Atelier</label>
+                      <div className="email-row">
+                        <input
+                          id="emailInput"
+                          type="email"
+                          placeholder="you@studio.com"
+                          required
+                          disabled={emailSaved}
+                        />
+                        <button className="btn btn-primary" type="submit">Save</button>
+                      </div>
+                      <p className="email-note">We only email when your export is ready.</p>
+                      <div
+                        className="email-success"
+                        style={{ display: emailSaved ? "block" : "none" }}
+                      >
+                        Saved. Your cover shoot is on its way.
+                      </div>
+                    </form>
+                  </>
+                )}
+
+                {error && <div className="tryon-errors">{error}</div>}
               </div>
             </div>
 
-            <div className={`panel panel-lookbook ${step < 3 ? "is-disabled" : ""}`}>
-              <h3>Lookbook</h3>
-              <p className="panel-subtitle">
+            {/* ── Right: Lookbook ── */}
+            <div className="lookbook-col">
+              <h3 style={{ margin: "0 0 0.2rem" }}>Lookbook</h3>
+              <p style={{ margin: "0", fontSize: "0.82rem", opacity: 0.7 }}>
                 Choose a collection and commission your edit.
               </p>
               <div className="collection-tabs">
@@ -559,12 +650,9 @@ export default function Home() {
                 {activeStyles.map((style) => (
                   <button
                     key={style.id}
-                    className={`style-card ${
-                      selectedStyle === style.id ? "is-selected" : ""
-                    }`}
+                    className={`style-card ${selectedStyle === style.id ? "is-selected" : ""}`}
                     onClick={() => {
                       setSelectedStyle(style.id);
-                      setStep(4);
                       setError("");
                     }}
                     type="button"
@@ -576,113 +664,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={`panel panel-processing ${step < 4 ? "is-disabled" : ""}`}>
-              <h3>Processing</h3>
-              <p className="panel-subtitle">
-                Your stylist is rendering. Typical time: 5-10 seconds.
-              </p>
-              <p className="panel-subtitle">
-                Server requires <strong>XAI_API_KEY</strong> in the environment.
-              </p>
-              <div className="progress-card">
-                <div className="progress-line" style={{ width: `${progress}%` }} />
-                <div className="progress-steps">
-                  <div className="progress-step">Casting verified</div>
-                  <div className="progress-step">Texture mapped</div>
-                  <div className="progress-step">Light sculpted</div>
-                  <div className="progress-step">Editorial finish</div>
-                </div>
-              </div>
-              <div className="processing-status">{status}</div>
-              <div className="processing-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleStart}
-                  disabled={!startEnabled}
-                >
-                  {processing ? "Rendering..." : "Start Processing"}
-                </button>
-                <button className="btn btn-ghost" onClick={handleReset}>
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            <div className={`panel panel-reveal ${step < 5 ? "is-disabled" : ""}`}>
-              <h3>Reveal</h3>
-              <p className="panel-subtitle">Slide to compare the before and after.</p>
-              <div
-                className="reveal-frame"
-                ref={revealFrameRef}
-                onPointerDown={(e) => {
-                  revealDragging.current = true;
-                  updateRevealFromPointer(e.clientX);
-                }}
-              >
-                <img src={previewUrl} alt="Before" />
-                <img
-                  src={resultUrl}
-                  alt="After"
-                  style={{ clipPath: `inset(0 ${100 - slider}% 0 0)` }}
-                />
-                <div className="reveal-divider" style={{ left: `${slider}%` }}>
-                  <div
-                    className="reveal-handle"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      revealDragging.current = true;
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="reveal-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.href = resultUrl;
-                    link.download = "hairbender-cover-shoot.jpg";
-                    link.click();
-                  }}
-                >
-                  Export Cover Shoot
-                </button>
-                <button className="btn btn-ghost">Share Polaroid</button>
-              </div>
-              <form
-                className="email-capture"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setEmailSaved(true);
-                }}
-              >
-                <label htmlFor="emailInput">Save your edit to the Atelier</label>
-                <div className="email-row">
-                  <input
-                    id="emailInput"
-                    type="email"
-                    placeholder="you@studio.com"
-                    required
-                    disabled={emailSaved}
-                  />
-                  <button className="btn btn-primary" type="submit">
-                    Save
-                  </button>
-                </div>
-                <p className="email-note">
-                  We only email when your export is ready.
-                </p>
-                <div
-                  className="email-success"
-                  style={{ display: emailSaved ? "block" : "none" }}
-                >
-                  Saved. Your cover shoot is on its way.
-                </div>
-              </form>
-            </div>
           </div>
-
-          {error ? <div className="tryon-errors">{error}</div> : null}
         </section>
 
         <section className="features" id="features">
