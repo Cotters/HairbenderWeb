@@ -94,6 +94,7 @@ export default function Home() {
   const moodboardInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [aux, setAux] = useState<AuxOptions>(DEFAULT_AUX);
   const [auxOpen, setAuxOpen] = useState(false);
+  const [stylesOpen, setStylesOpen] = useState(true);
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
@@ -259,6 +260,20 @@ export default function Home() {
     };
   };
 
+  const updateAux = (field: keyof AuxOptions, value: string | null) => {
+    setAux((prev) => {
+      const next = { ...prev, [field]: prev[field] === value ? null : value };
+      // Auto-advance: if all 4 fields are now filled, close Hair Profile and open Moodboard
+      if (next.hairType && next.density && next.volume && next.maintenance) {
+        setTimeout(() => {
+          setAuxOpen(false);
+          setMoodboardOpen(true);
+        }, 150);
+      }
+      return next;
+    });
+  };
+
   const handleMoodboardUpload = (category: MoodboardCategory, file: File) => {
     const allowedTypes = ["image/jpeg", "image/png"];
     if (!allowedTypes.includes(file.type)) return;
@@ -392,6 +407,7 @@ export default function Home() {
     setMoodboardOpen(false);
     setAux(DEFAULT_AUX);
     setAuxOpen(false);
+    setStylesOpen(true);
   };
 
   return (
@@ -714,23 +730,40 @@ export default function Home() {
 
             {/* ── Right: Lookbook ── */}
             <div className="lookbook-col">
-              <h3 style={{ margin: "0 0 0.2rem" }}>Lookbook</h3>
-              <p style={{ margin: "0", fontSize: "0.82rem", opacity: 0.7 }}>
-                Choose a collection and commission your edit.
-              </p>
-              <div className="collection-tabs">
-                {COLLECTION_ORDER.map((key) => (
-                  <button
-                    key={key}
-                    className={`tab ${collection === key ? "is-active" : ""}`}
-                    onClick={() => { setCollection(key); setSelectedStyle(null); }}
-                    type="button"
-                  >
-                    {COLLECTION_LABELS[key]}
-                  </button>
-                ))}
-              </div>
-              <div className="style-grid">
+              <button
+                className="aux-toggle"
+                onClick={() => setStylesOpen((prev) => !prev)}
+                type="button"
+              >
+                <h4 style={{ margin: 0 }}>
+                  Lookbook
+                  {selectedStyle && (
+                    <span style={{ fontFamily: "var(--mono)", fontSize: "0.6rem", opacity: 0.5, marginLeft: "0.75rem", letterSpacing: "0.1em" }}>
+                      {activeStyles.find((s) => s.id === selectedStyle)?.name ?? selectedStyle}
+                    </span>
+                  )}
+                </h4>
+                <span className="aux-chevron">{stylesOpen ? "▴" : "▾"}</span>
+              </button>
+
+              {stylesOpen && (
+                <>
+                  <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", opacity: 0.7 }}>
+                    Choose a collection and commission your edit.
+                  </p>
+                  <div className="collection-tabs">
+                    {COLLECTION_ORDER.map((key) => (
+                      <button
+                        key={key}
+                        className={`tab ${collection === key ? "is-active" : ""}`}
+                        onClick={() => { setCollection(key); setSelectedStyle(null); }}
+                        type="button"
+                      >
+                        {COLLECTION_LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="style-grid">
                 {activeStyles.map((style) => (
                   <button
                     key={style.id}
@@ -738,6 +771,8 @@ export default function Home() {
                     onClick={() => {
                       setSelectedStyle(style.id);
                       setError("");
+                      setStylesOpen(false);
+                      setAuxOpen(true);
                     }}
                     type="button"
                   >
@@ -746,6 +781,8 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+                </>
+              )}
 
               {/* ── Aux options ── */}
               <div className="aux-section">
@@ -771,12 +808,7 @@ export default function Home() {
                               <button
                                 key={t.value}
                                 className={`aux-chip ${aux.hairType === t.value ? "is-active" : ""}`}
-                                onClick={() =>
-                                  setAux((prev) => ({
-                                    ...prev,
-                                    hairType: prev.hairType === t.value ? null : t.value,
-                                  }))
-                                }
+                                onClick={() => updateAux("hairType", t.value)}
                                 type="button"
                               >
                                 {t.label}
@@ -795,12 +827,7 @@ export default function Home() {
                           <button
                             key={opt.value}
                             className={`aux-chip ${aux.density === opt.value ? "is-active" : ""}`}
-                            onClick={() =>
-                              setAux((prev) => ({
-                                ...prev,
-                                density: prev.density === opt.value ? null : opt.value,
-                              }))
-                            }
+                            onClick={() => updateAux("density", opt.value)}
                             type="button"
                           >
                             {opt.label}
@@ -817,12 +844,7 @@ export default function Home() {
                           <button
                             key={opt.value}
                             className={`aux-chip ${aux.volume === opt.value ? "is-active" : ""}`}
-                            onClick={() =>
-                              setAux((prev) => ({
-                                ...prev,
-                                volume: prev.volume === opt.value ? null : opt.value,
-                              }))
-                            }
+                            onClick={() => updateAux("volume", opt.value)}
                             type="button"
                           >
                             {opt.label}
@@ -839,12 +861,7 @@ export default function Home() {
                           <button
                             key={opt.value}
                             className={`aux-chip ${aux.maintenance === opt.value ? "is-active" : ""}`}
-                            onClick={() =>
-                              setAux((prev) => ({
-                                ...prev,
-                                maintenance: prev.maintenance === opt.value ? null : opt.value,
-                              }))
-                            }
+                            onClick={() => updateAux("maintenance", opt.value)}
                             type="button"
                           >
                             {opt.label}
@@ -867,7 +884,7 @@ export default function Home() {
                   onClick={() => setMoodboardOpen((prev) => !prev)}
                   type="button"
                 >
-                  <h4>Moodboard</h4>
+                  <h4>Moodboard <span style={{ fontFamily: "var(--mono)", fontSize: "0.55rem", opacity: 0.4, letterSpacing: "0.1em", fontWeight: 400 }}>(Optional)</span></h4>
                   <span className="moodboard-badge">
                     {moodboard.length}/3 {moodboardOpen ? "▴" : "▾"}
                   </span>

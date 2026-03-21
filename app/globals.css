@@ -366,6 +366,9 @@ main {
 .photo-col {
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 5.5rem;
+  align-self: start;
 }
 
 .photo-view {
@@ -1061,6 +1064,10 @@ ul {
 
   .nav-links {
     flex-wrap: wrap;
+  }
+
+  .photo-col {
+    position: static;
   }
 
   .email-row {
