@@ -3,7 +3,7 @@ import { generateTryOn } from "@/lib/tryon/xai";
 import { STYLE_DESCRIPTIONS } from "@/lib/styles/descriptions";
 import { generateText } from "ai";
 import { xai } from "@ai-sdk/xai";
-import type { MoodboardCategory } from "@/lib/styles/types";
+import type { MoodboardCategory, AuxOptions } from "@/lib/styles/types";
 
 export const runtime = "nodejs";
 
@@ -22,6 +22,45 @@ const CATEGORY_LABELS: Record<MoodboardCategory, string> = {
   colour: "COLOUR",
   texture: "TEXTURE",
   "length-shape": "LENGTH & SHAPE",
+};
+
+const MAINTENANCE_PROMPTS: Record<string, string> = {
+  "wash-and-go":
+    "Style should be extremely low-maintenance — air-dry friendly, minimal product, works with the hair's natural pattern. No heat styling required.",
+  "styled-daily":
+    "Style requires moderate daily effort — some blow-drying, light product, and basic shaping each morning.",
+  "high-maintenance":
+    "Style is high-maintenance and editorial — requires precision styling, multiple products, heat tools, and professional upkeep.",
+};
+
+const DENSITY_PROMPTS: Record<string, string> = {
+  fine: "The subject has fine, thin hair — render with less volume, finer individual strands, and lighter weight. Avoid overly voluminous looks.",
+  medium:
+    "The subject has medium-density hair — render with balanced volume and natural strand thickness.",
+  thick:
+    "The subject has thick, full hair — render with substantial volume, dense strand coverage, and visible weight and body.",
+};
+
+const VOLUME_PROMPTS: Record<string, string> = {
+  flat: "Style the hair flat and sleek against the head — minimal lift, smooth silhouette, polished finish.",
+  natural:
+    "Give the hair natural body and movement — moderate lift at the roots, relaxed shape.",
+  big: "Maximize volume — big, full hair with lift at the roots, expanded silhouette, dramatic body.",
+};
+
+const HAIR_TYPE_PROMPTS: Record<string, string> = {
+  "1a": "Hair type 1A: pin-straight, very fine, no wave or curl whatsoever. Render as completely flat, silky strands.",
+  "1b": "Hair type 1B: straight with slight body and gentle bends, medium texture.",
+  "1c": "Hair type 1C: straight but with coarse strands and subtle waves at the ends.",
+  "2a": "Hair type 2A: loose, gentle S-shaped waves starting mid-length, fine to medium texture.",
+  "2b": "Hair type 2B: defined S-waves starting closer to the roots, medium texture with some frizz tendency.",
+  "2c": "Hair type 2C: well-defined waves bordering on curls, coarse texture with volume.",
+  "3a": "Hair type 3A: loose, springy curls about the diameter of sidewalk chalk, shiny with defined loops.",
+  "3b": "Hair type 3B: tighter springy curls about marker-width, voluminous with a defined spiral pattern.",
+  "3c": "Hair type 3C: tight corkscrew curls, pencil-width, densely packed with significant volume.",
+  "4a": "Hair type 4A: tightly coiled S-pattern curls, visible curl definition, dense with shrinkage.",
+  "4b": "Hair type 4B: tightly coiled Z-pattern hair, less defined curl pattern, cotton-like texture with sharp angles.",
+  "4c": "Hair type 4C: extremely tight coils with minimal curl definition, very dense, significant shrinkage, fragile texture.",
 };
 
 interface MoodboardCaption {
@@ -59,7 +98,8 @@ async function captionMoodboardImage(
 function buildPrompt(
   styleId: string,
   _collection: string,
-  moodboardCaptions?: MoodboardCaption[]
+  moodboardCaptions?: MoodboardCaption[],
+  auxOptions?: Partial<AuxOptions>
 ) {
   const description =
     STYLE_DESCRIPTIONS[styleId] ?? `a ${styleId.replace(/-/g, " ")} hairstyle`;
@@ -76,8 +116,29 @@ function buildPrompt(
       `use the referenced colour/texture/shape to adapt the base cut, not replace it entirely. `;
   }
 
+  let auxClause = "";
+  if (auxOptions) {
+    const parts: string[] = [];
+    if (auxOptions.hairType && HAIR_TYPE_PROMPTS[auxOptions.hairType]) {
+      parts.push(HAIR_TYPE_PROMPTS[auxOptions.hairType]);
+    }
+    if (auxOptions.density && DENSITY_PROMPTS[auxOptions.density]) {
+      parts.push(DENSITY_PROMPTS[auxOptions.density]);
+    }
+    if (auxOptions.volume && VOLUME_PROMPTS[auxOptions.volume]) {
+      parts.push(VOLUME_PROMPTS[auxOptions.volume]);
+    }
+    if (auxOptions.maintenance && MAINTENANCE_PROMPTS[auxOptions.maintenance]) {
+      parts.push(MAINTENANCE_PROMPTS[auxOptions.maintenance]);
+    }
+    if (parts.length > 0) {
+      auxClause = `Hair profile constraints: ${parts.join(" ")} `;
+    }
+  }
+
   return (
     `Edit ONLY the hair of the person in this photo. Apply exactly: ${description}. ` +
+    auxClause +
     moodboardClause +
     `CRITICAL COMPOSITION RULES — these override everything else: ` +
     `The output image must be pixel-for-pixel identical in framing and composition to the input. ` +
@@ -171,12 +232,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Parse aux options
+    const auxOptions: Partial<AuxOptions> = {};
+    const maintenance = formData.get("maintenance");
+    const density = formData.get("density");
+    const volume = formData.get("volume");
+    const hairType = formData.get("hairType");
+    if (maintenance) auxOptions.maintenance = String(maintenance) as AuxOptions["maintenance"];
+    if (density) auxOptions.density = String(density) as AuxOptions["density"];
+    if (volume) auxOptions.volume = String(volume) as AuxOptions["volume"];
+    if (hairType) auxOptions.hairType = String(hairType) as AuxOptions["hairType"];
+
     const arrayBuffer = await image.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     const result = await generateTryOn({
       imageBase64: base64,
       mimeType: image.type,
-      prompt: buildPrompt(styleId, collection || "editorial", moodboardCaptions),
+      prompt: buildPrompt(styleId, collection || "editorial", moodboardCaptions, auxOptions),
     });
 
     return NextResponse.json({

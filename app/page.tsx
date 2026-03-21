@@ -6,13 +6,62 @@ import {
   COLLECTION_ORDER,
   styleCollections,
 } from "@/lib/styles/collections";
-import type { CollectionKey, MoodboardCategory, MoodboardEntry } from "@/lib/styles/types";
+import type {
+  CollectionKey,
+  MoodboardCategory,
+  MoodboardEntry,
+  AuxOptions,
+  MaintenanceLevel,
+  HairDensity,
+  VolumeLevel,
+  HairType,
+} from "@/lib/styles/types";
 
 const MOODBOARD_SLOTS: { category: MoodboardCategory; label: string; icon: string }[] = [
   { category: "colour", label: "Colour", icon: "◑" },
   { category: "texture", label: "Texture", icon: "≋" },
   { category: "length-shape", label: "Length & Shape", icon: "⌇" },
 ];
+
+const MAINTENANCE_OPTIONS: { value: MaintenanceLevel; label: string }[] = [
+  { value: "wash-and-go", label: "Wash & Go" },
+  { value: "styled-daily", label: "Styled Daily" },
+  { value: "high-maintenance", label: "High Maintenance" },
+];
+
+const DENSITY_OPTIONS: { value: HairDensity; label: string }[] = [
+  { value: "fine", label: "Fine & Thin" },
+  { value: "medium", label: "Medium" },
+  { value: "thick", label: "Thick & Full" },
+];
+
+const VOLUME_OPTIONS: { value: VolumeLevel; label: string }[] = [
+  { value: "flat", label: "Flat & Sleek" },
+  { value: "natural", label: "Natural Body" },
+  { value: "big", label: "Big Hair" },
+];
+
+const HAIR_TYPE_GROUPS: { label: string; types: { value: HairType; label: string }[] }[] = [
+  { label: "Straight", types: [
+    { value: "1a", label: "1A" }, { value: "1b", label: "1B" }, { value: "1c", label: "1C" },
+  ]},
+  { label: "Wavy", types: [
+    { value: "2a", label: "2A" }, { value: "2b", label: "2B" }, { value: "2c", label: "2C" },
+  ]},
+  { label: "Curly", types: [
+    { value: "3a", label: "3A" }, { value: "3b", label: "3B" }, { value: "3c", label: "3C" },
+  ]},
+  { label: "Coily", types: [
+    { value: "4a", label: "4A" }, { value: "4b", label: "4B" }, { value: "4c", label: "4C" },
+  ]},
+];
+
+const DEFAULT_AUX: AuxOptions = {
+  maintenance: null,
+  density: null,
+  volume: null,
+  hairType: null,
+};
 
 const placeholderImage =
   "data:image/svg+xml;utf8," +
@@ -43,6 +92,8 @@ export default function Home() {
   const [moodboard, setMoodboard] = useState<MoodboardEntry[]>([]);
   const [moodboardOpen, setMoodboardOpen] = useState(false);
   const moodboardInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [aux, setAux] = useState<AuxOptions>(DEFAULT_AUX);
+  const [auxOpen, setAuxOpen] = useState(false);
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
@@ -293,6 +344,11 @@ export default function Home() {
         formData.append("moodboard_categories", entry.category);
       }
 
+      if (aux.maintenance) formData.append("maintenance", aux.maintenance);
+      if (aux.density) formData.append("density", aux.density);
+      if (aux.volume) formData.append("volume", aux.volume);
+      if (aux.hairType) formData.append("hairType", aux.hairType);
+
       const response = await fetch("/api/tryon", { method: "POST", body: formData });
 
       if (!response.ok) {
@@ -334,6 +390,8 @@ export default function Home() {
     for (const entry of moodboard) URL.revokeObjectURL(entry.previewUrl);
     setMoodboard([]);
     setMoodboardOpen(false);
+    setAux(DEFAULT_AUX);
+    setAuxOpen(false);
   };
 
   return (
@@ -687,6 +745,119 @@ export default function Home() {
                     <span>{style.notes}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* ── Aux options ── */}
+              <div className="aux-section">
+                <button
+                  className="aux-toggle"
+                  onClick={() => setAuxOpen((prev) => !prev)}
+                  type="button"
+                >
+                  <h4>Hair Profile</h4>
+                  <span className="aux-chevron">{auxOpen ? "▴" : "▾"}</span>
+                </button>
+
+                {auxOpen && (
+                  <div className="aux-grid">
+                    {/* Hair Type */}
+                    <div>
+                      <p className="aux-field-label">Hair Type</p>
+                      <div className="aux-options aux-options--hair-type">
+                        {HAIR_TYPE_GROUPS.map((group) => (
+                          <>
+                            <div key={`label-${group.label}`} className="aux-type-group-label">{group.label}</div>
+                            {group.types.map((t) => (
+                              <button
+                                key={t.value}
+                                className={`aux-chip ${aux.hairType === t.value ? "is-active" : ""}`}
+                                onClick={() =>
+                                  setAux((prev) => ({
+                                    ...prev,
+                                    hairType: prev.hairType === t.value ? null : t.value,
+                                  }))
+                                }
+                                type="button"
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                          </>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Density */}
+                    <div>
+                      <p className="aux-field-label">Hair Density</p>
+                      <div className="aux-options">
+                        {DENSITY_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            className={`aux-chip ${aux.density === opt.value ? "is-active" : ""}`}
+                            onClick={() =>
+                              setAux((prev) => ({
+                                ...prev,
+                                density: prev.density === opt.value ? null : opt.value,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Volume */}
+                    <div>
+                      <p className="aux-field-label">Volume</p>
+                      <div className="aux-options">
+                        {VOLUME_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            className={`aux-chip ${aux.volume === opt.value ? "is-active" : ""}`}
+                            onClick={() =>
+                              setAux((prev) => ({
+                                ...prev,
+                                volume: prev.volume === opt.value ? null : opt.value,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Maintenance */}
+                    <div>
+                      <p className="aux-field-label">Maintenance Level</p>
+                      <div className="aux-options">
+                        {MAINTENANCE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            className={`aux-chip ${aux.maintenance === opt.value ? "is-active" : ""}`}
+                            onClick={() =>
+                              setAux((prev) => ({
+                                ...prev,
+                                maintenance: prev.maintenance === opt.value ? null : opt.value,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="aux-hint">
+                      Optional. Helps the AI tailor the style to your hair.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* ── Moodboard ── */}
