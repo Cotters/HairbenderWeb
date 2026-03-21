@@ -11,3 +11,12 @@ export type CollectionKey =
   | "coastal"
   | "curl"
   | "retro";
+
+export type MoodboardCategory = "colour" | "texture" | "length-shape";
+
+export interface MoodboardEntry {
+  id: string;
+  file: File;
+  previewUrl: string;
+  category: MoodboardCategory;
+}

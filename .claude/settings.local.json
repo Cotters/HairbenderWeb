@@ -8,7 +8,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/health)",
       "Read(//Users/joshuacotterell/Documents/hairbender-api/**)",
       "Bash(.venv/bin/pip install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx next:*)"
     ]
   }
 }

@@ -6,7 +6,13 @@ import {
   COLLECTION_ORDER,
   styleCollections,
 } from "@/lib/styles/collections";
-import type { CollectionKey } from "@/lib/styles/types";
+import type { CollectionKey, MoodboardCategory, MoodboardEntry } from "@/lib/styles/types";
+
+const MOODBOARD_SLOTS: { category: MoodboardCategory; label: string; icon: string }[] = [
+  { category: "colour", label: "Colour", icon: "◑" },
+  { category: "texture", label: "Texture", icon: "≋" },
+  { category: "length-shape", label: "Length & Shape", icon: "⌇" },
+];
 
 const placeholderImage =
   "data:image/svg+xml;utf8," +
@@ -34,6 +40,9 @@ export default function Home() {
   const [slider, setSlider] = useState(55);
   const [emailSaved, setEmailSaved] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
+  const [moodboard, setMoodboard] = useState<MoodboardEntry[]>([]);
+  const [moodboardOpen, setMoodboardOpen] = useState(false);
+  const moodboardInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
@@ -199,6 +208,34 @@ export default function Home() {
     };
   };
 
+  const handleMoodboardUpload = (category: MoodboardCategory, file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png"];
+    if (!allowedTypes.includes(file.type)) return;
+    if (file.size > 5 * 1024 * 1024) return;
+
+    // Revoke old preview URL if replacing
+    const existing = moodboard.find((m) => m.category === category);
+    if (existing) URL.revokeObjectURL(existing.previewUrl);
+
+    const entry: MoodboardEntry = {
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      category,
+    };
+
+    setMoodboard((prev) => [
+      ...prev.filter((m) => m.category !== category),
+      entry,
+    ]);
+  };
+
+  const handleMoodboardRemove = (category: MoodboardCategory) => {
+    const existing = moodboard.find((m) => m.category === category);
+    if (existing) URL.revokeObjectURL(existing.previewUrl);
+    setMoodboard((prev) => prev.filter((m) => m.category !== category));
+  };
+
   const handleStyleMe = async () => {
     if (!rawFile || !imageDims) {
       setError("Upload a selfie first.");
@@ -251,6 +288,11 @@ export default function Home() {
       formData.append("styleId", selectedStyle);
       formData.append("collection", collection);
 
+      for (const entry of moodboard) {
+        formData.append("moodboard_files", entry.file);
+        formData.append("moodboard_categories", entry.category);
+      }
+
       const response = await fetch("/api/tryon", { method: "POST", body: formData });
 
       if (!response.ok) {
@@ -289,6 +331,9 @@ export default function Home() {
     setCropZoom(1);
     setCropOffset({ x: 0, y: 0 });
     setImageDims(null);
+    for (const entry of moodboard) URL.revokeObjectURL(entry.previewUrl);
+    setMoodboard([]);
+    setMoodboardOpen(false);
   };
 
   return (
@@ -642,6 +687,99 @@ export default function Home() {
                     <span>{style.notes}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* ── Moodboard ── */}
+              <div className="moodboard-section">
+                <button
+                  className="moodboard-toggle"
+                  onClick={() => setMoodboardOpen((prev) => !prev)}
+                  type="button"
+                >
+                  <h4>Moodboard</h4>
+                  <span className="moodboard-badge">
+                    {moodboard.length}/3 {moodboardOpen ? "▴" : "▾"}
+                  </span>
+                </button>
+
+                {moodboardOpen && (
+                  <>
+                    <div className="moodboard-grid">
+                      {MOODBOARD_SLOTS.map((slot) => {
+                        const entry = moodboard.find(
+                          (m) => m.category === slot.category
+                        );
+                        return (
+                          <div
+                            key={slot.category}
+                            className={`moodboard-slot ${entry ? "is-filled" : ""}`}
+                            onClick={() => {
+                              if (!entry) {
+                                moodboardInputRefs.current[slot.category]?.click();
+                              }
+                            }}
+                          >
+                            {entry ? (
+                              <>
+                                <img
+                                  src={entry.previewUrl}
+                                  alt={slot.label}
+                                  draggable={false}
+                                />
+                                <button
+                                  className="moodboard-slot-remove"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMoodboardRemove(slot.category);
+                                  }}
+                                  type="button"
+                                >
+                                  ✕
+                                </button>
+                                <div className="moodboard-slot-tag">
+                                  {slot.label}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="moodboard-slot-icon">
+                                  {slot.icon}
+                                </div>
+                                <div className="moodboard-slot-label">
+                                  {slot.label}
+                                </div>
+                              </>
+                            )}
+                            <input
+                              ref={(el) => {
+                                moodboardInputRefs.current[slot.category] = el;
+                              }}
+                              type="file"
+                              accept="image/jpeg,image/png"
+                              style={{
+                                position: "absolute",
+                                opacity: 0,
+                                width: 0,
+                                height: 0,
+                                pointerEvents: "none",
+                              }}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f)
+                                  handleMoodboardUpload(slot.category, f);
+                                e.target.value = "";
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="moodboard-hint">
+                      Optional. Upload references to influence colour, texture,
+                      or shape.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
